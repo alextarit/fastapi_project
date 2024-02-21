@@ -1,41 +1,43 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Response, status
 from icecream import ic
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas import IncomingSeller, ReturnedAllSellers, CertainSeller
 from fastapi.responses import ORJSONResponse
 
+from src.configurations.database import get_async_session
+from src.models.sellers import Seller
+
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
 
-#Временная симуляция хранилища fake_sellers #TODO перенести в формат бд все  
-fake_sellers = {}
-COUNTER = 0
+#Подключаемся к реальному хранилищу 
+DBSession = Annotated[AsyncSession, Depends(get_async_session)]
 
 #Ручка для создания продавца, возвращает созданного продавца
 @sellers_router.post("/",response_model=CertainSeller, status_code=status.HTTP_201_CREATED)
 async def create_seller(
-    seller: IncomingSeller
+    seller: IncomingSeller, session: DBSession
 ):
-    global COUNTER
-    new_sellers = {
-        "id": COUNTER,
-        "password": seller.password,
-        "first_name": seller.first_name,
-        "last_name": seller.last_name,
-        "email": seller.email
-    }
+    new_seller = Seller(
+        first_name=seller.first_name,
+        last_name=seller.last_name,
+        email=seller.email,
+        password=seller.password
+    )
+    session.add(new_seller)
+    await session.flush()
 
-    fake_sellers[COUNTER] = new_sellers
-    COUNTER += 1
-
-    return fake_sellers[COUNTER - 1]
-    # return ORJSONResponse(
-    #     new_sellers
-    # )
+    return new_seller
 
 #Ручка для получения списка всех продавцов
 @sellers_router.get("/", response_model=ReturnedAllSellers)
-async def get_all_sellers():
-    sellers = list(fake_sellers.values())
+async def get_all_sellers(session: DBSession):
+    query = select(Seller)
+    res = await session.execute(query)
+    sellers = res.scalars().all()
     return {"sellers": sellers}
 
 #Ручка для получения конретного продавца
