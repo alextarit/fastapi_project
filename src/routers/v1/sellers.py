@@ -10,6 +10,7 @@ from fastapi.responses import ORJSONResponse
 
 from src.configurations.database import get_async_session
 from src.models.sellers import Seller
+from src.models.books import Book
 
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
 
@@ -40,10 +41,24 @@ async def get_all_sellers(session: DBSession):
     sellers = res.scalars().all()
     return {"sellers": sellers}
 
-#Ручка для получения конретного продавца
+#Ручка для получения конrретного продавца
 @sellers_router.get("/{seller_id}", response_model=CertainSeller)
-async def get_seller(seller_id: int):
-    return fake_sellers[seller_id]
+async def get_seller(seller_id: int, session: DBSession):
+    res_seller = await session.get(Seller, seller_id)
+    query_books = select(Book).where(Book.parent_id == seller_id)
+    res_books = await session.execute(query_books)
+    seller_books = res_books.scalars().all()
+    
+    seller_date = {
+        "id": res_seller.id,
+        "first_name": res_seller.first_name,
+        "last_name": res_seller.last_name,
+        "email": res_seller.email,
+        "books": seller_books
+    }
+
+    return seller_date
+
 
 #Ручка для обновления данных о продавце
 @sellers_router.put("/{seller_id}", response_model=CertainSeller)

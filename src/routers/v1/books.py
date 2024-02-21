@@ -22,6 +22,7 @@ async def create_book(
 ):  # прописываем модель валидирующую входные данные и сессию как зависимость.
     # это - бизнес логика. Обрабатываем данные, сохраняем, преобразуем и т.д.
     new_book = Book(
+        parent_id=book.parent_id,
         title=book.title,
         author=book.author,
         year=book.year,
@@ -62,6 +63,7 @@ async def delete_book(book_id: int, session: DBSession):
     return Response(status_code=status.HTTP_204_NO_CONTENT)  # Response может вернуть текст и метаданные.
 
 
+#TODO подумать над апдейтом будем менять владельца или нет
 # Ручка для обновления данных о книге
 @books_router.put("/{book_id}")
 async def update_book(book_id: int, new_data: ReturnedBook, session: DBSession):

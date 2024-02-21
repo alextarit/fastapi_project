@@ -6,6 +6,7 @@ __all__ = ["IncomingBook", "ReturnedAllBooks", "ReturnedBook"]
 
 # Базовый класс "Книги", содержащий поля, которые есть во всех классах-наследниках.
 class BaseBook(BaseModel):
+    parent_id: int
     title: str
     author: str
     year: int
